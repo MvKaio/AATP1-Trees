@@ -12,32 +12,16 @@ struct Node {
 	unsigned priority, size;
 	Node *left, *right;
 	Node(T _value = T()) : value(_value), priority(rng()), size(1), 
-												 left(nullptr), right(nullptr) {}
-	
-	void update_size() {
-		this->size = get_size(left) + 1 + get_size(right);
-	}
-
-	void set_right(Node* x) {
-		right = x;
-		update_size();
-	}
-
-	void set_left(Node* x) {
-		left = x;
-		update_size();
-	}
+						   left(nullptr), right(nullptr) {}
+	void update_size();
+	void set_left(Node* x);
+	void set_right(Node* x);
 
 	static std::mt19937 rng;
 };
 
 template<typename T>
 std::mt19937 Node<T>::rng(std::chrono::system_clock::now().time_since_epoch().count());
-
-template<typename T>
-unsigned get_size(Node<T> *node) {
-	return (node == nullptr ? 0 : node->size);
-}
 
 template<typename T>
 class Treap {
@@ -56,7 +40,37 @@ class Treap {
 };
 
 template<typename T>
-Node<T> join(Node<T> *left, Node<T> *right);
+Node<T> join_aux(Node<T> *left, Node<T> *right);
+
+template<typename T>
+std::pair<Node<T>*, Node<T>*> split_before(const T& value, Node<T> *tree);
+
+template<typename T>
+std::pair<Node<T>*, Node<T>*> split_after(const T& value, Node<T> *tree);
+
+///////// Implementation Starts Here
+
+template<typename T>
+unsigned get_size(Node<T> *node) {
+	return (node == nullptr ? 0 : node->size);
+}
+
+template<typename T>
+void Node<T>::update_size() {
+	this->size = get_size(left) + 1 + get_size(right);
+}
+
+template<typename T>
+void Node<T>::set_right(Node* x) {
+	right = x;
+	update_size();
+}
+
+template<typename T>
+void Node<T>::set_left(Node* x) {
+	left = x;
+	update_size();
+}
 
 template<typename T>
 Treap<T>::Treap() : root(nullptr) {}
