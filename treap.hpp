@@ -40,7 +40,7 @@ class Treap {
 };
 
 template<typename T>
-Node<T> join_aux(Node<T> *left, Node<T> *right);
+Node<T>* join_aux(Node<T> *left, Node<T> *right);
 
 template<typename T>
 std::pair<Node<T>*, Node<T>*> split_before(const T& value, Node<T> *tree);
