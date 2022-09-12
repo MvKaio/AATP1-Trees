@@ -26,6 +26,8 @@ class AVL {
 	bool insert(const T& value);
 	void erase(const T& value);
 	bool contains(const T& value);
+	bool join(Node<T>* other);
+	std::pair<bool,Node<T>*> split(const T& value);
 	void print();
 
   private:
@@ -36,6 +38,10 @@ class AVL {
 	Node<T>* rotate_left_right(Node<T>* p);
 	Node<T>* insert(Node<T>* p, const T& value);
 	Node<T>* erase(Node<T>* p, const T& value);
+	Node<T>* join(Node<T>* l, const T& k, Node<T>* r);
+	Node<T>* join_right(Node<T>* l, const T& k, Node<T>* r);
+	Node<T>* join_left(Node<T>* l, const T& k, Node<T>* r);
+	Node<T>* split(Node<T>* p, const T& value);
 	void print(const std::string& prefix, Node<T>* p, bool isLeft);
 	Node<T> *root;
 };
@@ -204,6 +210,120 @@ bool AVL<T>::contains(const T& value) {
 			p = p->right;
 	}
 	return false;
+}
+
+template<typename T>
+Node<T>* AVL<T>::join_left(Node<T>* tl, const T& k, Node<T>* tr) {
+	auto [value, size, left, right] = tr; free(tr);
+
+	if (left->size <= tl->size + 1) {
+		Node<T> *aux = new Node<T>(k);
+		aux->set_left(tl); aux->set_right(left); aux->update_size();
+		if (aux->size() <= right->size() + 1) {
+			Node<T> *ret = new Node<T>(value);
+			ret->set_left(aux); ret->set_right(right); ret->update_size();
+			return ret;
+		} else {
+			Node<T> *ret = new Node<T>(value);
+			ret->set_left(rotate_left(aux)); ret->set_right(right); ret->update_size();
+			return rotate_right(ret);
+		}
+	}
+
+	else {
+		Node<T> *aux = join_left(tl, k, left);
+		Node<T> *auxaux = new Node<T>(value);
+		auxaux->set_left(aux); auxaux->set_right(right); auxaux->update_size();
+		if (aux->size <= right->size + 1)
+			return auxaux;
+		else
+			return rotate_right(auxaux);
+	}
+}
+
+template<typename T>
+Node<T>* AVL<T>::join_right(Node<T>* tl, const T& k, Node<T>* tr) {
+	auto [value, size, left, right] = tl; free(tl);
+
+	if (right->size <= tr->size + 1) {
+		Node<T> *aux = new Node<T>(k);
+		aux->set_left(right); aux->set_right(tr); aux->update_size();
+		if (aux->size() <= left->size() + 1) {
+			Node<T> *ret = new Node<T>(value);
+			ret->set_left(left); ret->set_right(aux); ret->update_size();
+			return ret;
+		} else {
+			Node<T> *ret = new Node<T>(value);
+			ret->set_left(left); ret->set_right(rotate_right(aux)); ret->update_size();
+			return rotate_left(ret);
+		}
+	}
+
+	else {
+		Node<T> *aux = join_right(right, k, tr);
+		Node<T> *auxaux = new Node<T>(value);
+		auxaux->set_left(left); auxaux->set_right(aux); auxaux->update_size();
+		if (aux->size <= left->size + 1)
+			return auxaux;
+		else
+			return rotate_left(auxaux);
+	}
+}
+
+template<typename T>
+Node<T>* AVL<T>::join(Node<T>* tl, const T& k, Node<T>* tr) {
+	if (tl->size > tr->size + 1)
+		return join_right(tl, k, tr);
+	if (tr->size > tl->size + 1)
+		return join_left(tl, k, tr);
+	Node<T> *ret = new Node<T>(k);
+	ret->set_left(tl); ret->set_right(tr); ret->update_size();
+	return ret;
+}
+
+template<typename T>
+bool AVL<T>::join(Node<T> *other) {
+	Node<T> *left_max = root->right;
+	while (left_max->right != nullptr)
+		left_max = left_max->right;
+
+	Node<T> *right_min = other->left;
+	while (right_min->left != nullptr)
+		right_min = right_min->left;
+
+	if (left_max->value >= right_min->value)
+		return false;
+	// erase(left_max->value);
+	const T value = left_max->value;
+	free(left_max);
+	root = join(root, value, other);
+	return true;
+}
+
+template<typename T>
+Node<T>* AVL<T>::split(Node<T>* p, const T& k) {
+	auto [value, size, left, right] = p; free(p);
+	if (value == k) {
+		root = left;
+		insert(k);
+		return right;
+	} else if (k < value) {
+		auto [_value, _size, _left, _right] = split(left, k);
+		root = _left;
+		insert(k);
+		return join(_right, value, right);
+	} else {
+		auto [_value, _size, _left, _right] = split(right, k);
+		root = join(left, value, _left);
+		insert(k);
+		return _right;
+	}
+}
+
+template<typename T>
+std::pair<bool,Node<T>*> AVL<T>::split(const T& value) {
+	if (!contains(value)) return false;
+	return {true, split(root, value)};
 }
 
 template<typename T>
