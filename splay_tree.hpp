@@ -30,7 +30,7 @@ class SplayTree {
 	void join(SplayTree<T>& other);
 
   private:
-	Node<T> *root;
+	Node<T>* root;
 };
 
 template<typename T>
@@ -42,7 +42,7 @@ void splay(Node<T>*&x);
 ///////// Implementation Starts Here
 
 template<typename T>
-unsigned get_size(Node<T> *node) {
+unsigned get_size(Node<T>* node) {
 	return (node == nullptr ? 0 : node->size);
 }
 
@@ -71,18 +71,41 @@ template<typename T>
 void rotate(Node<T>*& x) {
 	if (x == nullptr) return;
 	if (x->parent == nullptr) return;
+
 	Node<T>* pp = x->parent->parent;
+
+	printf("Rotate %d, %x.\n", x->value, x);
+	printf("Has parent %x.\n", x->parent);
+
 	if (x == x->parent->left) {
+		//printf("%x %x\n", x, x->parent->left);
 		x->parent->set_left(x->right);
 		if (x->right)
 			assert(x->right->parent == x->parent);
 		x->set_right(x->parent);
-		x->parent = pp;
+		if (pp) {
+			if (pp->value > x->value)
+				pp->set_left(x);
+			else
+				pp->set_right(x);
+		} else {
+			x->parent = pp;
+		}
+		printf("Got the parent %x\n", pp);
 	} else {
+		//printf("%x %x\n", x, x->parent->right);
 		assert(x->parent->right == x);
 		x->parent->set_right(x->left);
 		x->set_left(x->parent);
-		x->parent = pp;
+		if (pp) {
+			if (pp->value > x->value)
+				pp->set_left(x);
+			else
+				pp->set_right(x);
+		} else {
+			x->parent = pp;
+		}
+		printf("Got the parent %x\n", pp);
 	}
 }
 
@@ -122,8 +145,8 @@ bool SplayTree<T>::empty() {
 
 template<typename T>
 bool SplayTree<T>::insert(const T& value) {
-	Node<T> *at = this->root;
-	Node<T> *x = new Node<T>(value);
+	Node<T>* at = this->root;
+	Node<T>* x = new Node<T>(value);
 
 	if (at == nullptr) {
 		this->root = x;
@@ -135,8 +158,8 @@ bool SplayTree<T>::insert(const T& value) {
 		if (value < at->value) {
 			if (at->left == nullptr) {
 				at->set_left(x);
-				splay(x);
 				this->root = x;
+				splay(this->root);
 				return true;
 			}
 			at = at->left;
@@ -144,8 +167,8 @@ bool SplayTree<T>::insert(const T& value) {
 		else {
 			if (at->right == nullptr) {
 				at->set_right(x);
-				splay(x);
 				this->root = x;
+				splay(this->root);
 				return true;
 			}
 			at = at->right;
