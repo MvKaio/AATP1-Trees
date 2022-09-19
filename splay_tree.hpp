@@ -4,6 +4,7 @@
 #include <utility>
 #include <tuple>
 #include <cassert>
+#include <iostream>
 
 template<typename T>
 struct Node {
@@ -13,8 +14,8 @@ struct Node {
 	Node(T _value = T()) : value(_value), size(1), 
 						   parent(nullptr), left(nullptr), right(nullptr) {}
 	void update_size();
-	void set_left(Node*& x);
-	void set_right(Node*& x);
+	void set_left(Node* x);
+	void set_right(Node* x);
 };
 
 template<typename T>
@@ -34,10 +35,13 @@ class SplayTree {
 };
 
 template<typename T>
-void rotate(Node<T>*&x);
+void rotate(Node<T>*& x);
 
 template<typename T>
-void splay(Node<T>*&x);
+void splay(Node<T>*& x);
+
+template<typename T>
+Node<T>* successor(Node<T>* root, const T& value);
 
 ///////// Implementation Starts Here
 
@@ -52,7 +56,7 @@ void Node<T>::update_size() {
 }
 
 template<typename T>
-void Node<T>::set_right(Node<T>*& x) {
+void Node<T>::set_right(Node<T>* x) {
 	this->right = x;
 	if (x != nullptr)
 		x->parent = this;
@@ -60,7 +64,7 @@ void Node<T>::set_right(Node<T>*& x) {
 }
 
 template<typename T>
-void Node<T>::set_left(Node<T>*& x) {
+void Node<T>::set_left(Node<T>* x) {
 	this->left = x;
 	if (x != nullptr)
 		x->parent = this;
@@ -74,14 +78,8 @@ void rotate(Node<T>*& x) {
 
 	Node<T>* pp = x->parent->parent;
 
-	printf("Rotate %d, %x.\n", x->value, x);
-	printf("Has parent %x.\n", x->parent);
-
 	if (x == x->parent->left) {
-		//printf("%x %x\n", x, x->parent->left);
 		x->parent->set_left(x->right);
-		if (x->right)
-			assert(x->right->parent == x->parent);
 		x->set_right(x->parent);
 		if (pp) {
 			if (pp->value > x->value)
@@ -91,10 +89,7 @@ void rotate(Node<T>*& x) {
 		} else {
 			x->parent = pp;
 		}
-		printf("Got the parent %x\n", pp);
 	} else {
-		//printf("%x %x\n", x, x->parent->right);
-		assert(x->parent->right == x);
 		x->parent->set_right(x->left);
 		x->set_left(x->parent);
 		if (pp) {
@@ -105,7 +100,6 @@ void rotate(Node<T>*& x) {
 		} else {
 			x->parent = pp;
 		}
-		printf("Got the parent %x\n", pp);
 	}
 }
 
@@ -177,9 +171,89 @@ bool SplayTree<T>::insert(const T& value) {
 }
 
 template<typename T>
+Node<T>* successor(Node<T>* root, const T& value) {
+	if (root == nullptr) return nullptr;
+	if (root->value > value) {
+		Node<T>* left_succ = successor(root->left, value);
+		if (left_succ) return left_succ;
+		else return root;
+	} else {
+		return successor(root->right, value);
+	}
+}
+
+template<typename T>
 void SplayTree<T>::erase(const T& value) {
-	// TODO: Learn and implement this
-	// I can only do it for leaves
+	Node<T> *at = root;
+	while (at != nullptr && at->value != value) {
+		if (value < at->value)
+			at = at->left;
+		else
+			at = at->right;
+	}
+
+	if (at == nullptr) return;
+
+//	Node<T>* only_child = nullptr;
+//
+//	if (at->left == nullptr && at->right == nullptr) {
+//		if (at->parent->left == at)
+//			at->parent->set_left(nullptr);
+//		else // at->parent->right
+//			at->parent->set_right(nullptr);
+//		delete at;
+//		return;
+//	}
+//
+//	if (at->left && at->right == nullptr)
+//		only_child = at->left;
+//	else if (at->left == nullptr && at->right)
+//		only_child = at->right;
+//
+//	if (only_child) {
+//		if (at->parent->left == at) {
+//			at->parent->set_left(only_child);
+//			this->root = at->parent;
+//			splay(this->root);
+//		} else { // at->parent->right == at
+//			at->parent->set_right(only_child);
+//			this->root = at->parent;
+//			splay(this->root);
+//		}
+//	} else {
+//		Node<T>* succ = successor(at->right, value);
+//		if (!succ) {
+//			assert(at->right);
+//			printf("%d %d\n", at->value, at->right->value);
+//			assert(false);
+//		}
+//		Node<T>* succ_parent = succ->parent;
+//		Node<T>* succ_right = succ->right;
+//
+//		// Maybe the sizes get wrong after this operation
+//		// Let's hope not
+//
+//		if (succ_parent == at) {
+//			succ->set_left(at->left);
+//			if (at->parent->left == at)
+//				at->parent->set_left(succ);
+//			else // at->parent->right
+//				at->parent->set_right(succ);
+//		} else {
+//			succ->set_left(at->left);
+//			succ->set_right(at->right);
+//			if (at->parent->left == at)
+//				at->parent->set_left(succ);
+//			else // at->parent->right
+//				at->parent->set_right(succ);
+//
+//			succ_parent->set_right(succ_right);
+//			this->root = succ_parent;
+//			splay(this->root);
+//		}
+//	}
+//	
+//	delete at;
 }
 
 template<typename T>
