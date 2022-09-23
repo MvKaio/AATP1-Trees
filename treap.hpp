@@ -5,28 +5,26 @@
 #include <tuple>
 #include <chrono>
 #include <random>
-
-template<typename T>
-struct Node {
-	T value;
-	unsigned priority, size;
-	Node *left, *right;
-	Node(T _value = T()) : value(_value), priority(rng()), size(1), 
-						   left(nullptr), right(nullptr) {}
-	void update_size();
-	void set_left(Node* x);
-	void set_right(Node* x);
-
-	static std::mt19937 rng;
-};
-
-template<typename T>
-std::mt19937 Node<T>::rng(std::chrono::system_clock::now().time_since_epoch().count());
+#include <stack>
 
 template<typename T>
 class Treap {
   public:
+	struct Node {
+		T value;
+		unsigned priority, size;
+		Node *left, *right;
+		Node(T _value = T()) : value(_value), priority(rng()), size(1), 
+							   left(nullptr), right(nullptr) {}
+		void update_size();
+		void set_left(Node* x);
+		void set_right(Node* x);
+
+		static std::mt19937 rng;
+	};
+
 	Treap();
+	~Treap();
 	unsigned size();
 	bool empty();
 	bool insert(const T& value);
@@ -36,38 +34,68 @@ class Treap {
 	void join(Treap<T>& other);
 
   private:
-	Node<T> *root;
+	Treap<T>::Node *root;
+	static void grab_pointers(std::stack<Node*>&, Node*);
 };
 
 template<typename T>
-Node<T>* join_aux(Node<T> *left, Node<T> *right);
+using TNode = typename Treap<T>::Node;
 
 template<typename T>
-std::pair<Node<T>*, Node<T>*> split_before(const T& value, Node<T> *tree);
+std::mt19937 Treap<T>::Node::rng(std::chrono::system_clock::now().time_since_epoch().count());
 
-template<typename T>
-std::pair<Node<T>*, Node<T>*> split_after(const T& value, Node<T> *tree);
+namespace helper_methods {
+	template<typename T>
+	unsigned get_size(TNode<T>* node);
+
+	template<typename T>
+	TNode<T>* join_aux(TNode<T> *left, TNode<T> *right);
+
+	template<typename T>
+	std::pair<TNode<T>*, TNode<T>*> split_before(const T& value, TNode<T> *tree);
+
+	template<typename T>
+	std::pair<TNode<T>*, TNode<T>*> split_after(const T& value, TNode<T> *tree);
+}
 
 ///////// Implementation Starts Here
 
 template<typename T>
-unsigned get_size(Node<T> *node) {
+void Treap<T>::grab_pointers(std::stack<Treap<T>::Node*>& stk, Treap<T>::Node* at) {
+	if (at == nullptr) return;
+	grab_pointers(stk, at->left);
+	stk.push(at);
+	grab_pointers(stk, at->right);
+}
+
+template<typename T>
+Treap<T>::~Treap<T>() {
+	std::stack<TNode<T>*> pointers;
+	grab_pointers(pointers, this->root);
+	while (not pointers.empty()) {
+		delete pointers.top();
+		pointers.pop();
+	}
+}
+
+template<typename T>
+unsigned helper_methods::get_size(TNode<T> *node) {
 	return (node == nullptr ? 0 : node->size);
 }
 
 template<typename T>
-void Node<T>::update_size() {
-	this->size = get_size(left) + 1 + get_size(right);
+void Treap<T>::Node::update_size() {
+	this->size = helper_methods::get_size<T>(left) + 1 + helper_methods::get_size<T>(right);
 }
 
 template<typename T>
-void Node<T>::set_right(Node* x) {
+void Treap<T>::Node::set_right(Treap<T>::Node* x) {
 	right = x;
 	update_size();
 }
 
 template<typename T>
-void Node<T>::set_left(Node* x) {
+void Treap<T>::Node::set_left(Treap<T>::Node* x) {
 	left = x;
 	update_size();
 }
@@ -91,7 +119,7 @@ bool Treap<T>::insert(const T& value) {
 
 	Treap<T> unit, other;
 	this->split(value, other);
-	unit.root = new Node<T>(value);
+	unit.root = new TNode<T>(value);
 
 	this->join(unit);
 
@@ -110,7 +138,7 @@ void Treap<T>::erase(const T& value) {
 
 template<typename T>
 bool Treap<T>::contains(const T& value) {
-	Node<T> *at = root;
+	TNode<T> *at = root;
 
 	while (at != nullptr) {
 		if (value == at->value) return true;
@@ -124,9 +152,9 @@ bool Treap<T>::contains(const T& value) {
 }
 
 template<typename T>
-std::pair<Node<T>*, Node<T>*> split_before(const T& value, Node<T> *tree) {
+std::pair<TNode<T>*, TNode<T>*> split_before(const T& value, TNode<T> *tree) {
 	if (tree == nullptr) return std::make_pair(nullptr, nullptr);
-	Node<T> *left, *right;
+	TNode<T> *left, *right;
 	if (tree->value < value) {
 		std::tie(left, right) = split_before(value, tree->right);
 		tree->set_right(left);
@@ -139,9 +167,9 @@ std::pair<Node<T>*, Node<T>*> split_before(const T& value, Node<T> *tree) {
 }
 
 template<typename T>
-std::pair<Node<T>*, Node<T>*> split_after(const T& value, Node<T> *tree) {
+std::pair<TNode<T>*, TNode<T>*> split_after(const T& value, TNode<T> *tree) {
 	if (tree == nullptr) return std::make_pair(nullptr, nullptr);
-	Node<T> *left, *right;
+	TNode<T> *left, *right;
 	if (tree->value <= value) {
 		std::tie(left, right) = split_after(value, tree->right);
 		tree->set_right(left);
@@ -155,7 +183,7 @@ std::pair<Node<T>*, Node<T>*> split_after(const T& value, Node<T> *tree) {
 
 template<typename T>
 void Treap<T>::split(const T& value, Treap<T>& other, bool after) {
-	Node<T> *left, *right;
+	TNode<T> *left, *right;
 	if (after)
 		std::tie(left, right) = split_after(value, this->root);
 	else
@@ -165,15 +193,15 @@ void Treap<T>::split(const T& value, Treap<T>& other, bool after) {
 }
 
 template<typename T>
-Node<T>* join_aux(Node<T> *left, Node<T> *right) {
+TNode<T>* helper_methods::join_aux(TNode<T>* left, TNode<T>* right) {
 	if (left == nullptr) return right;
 	if (right == nullptr) return left;
 	if (left->priority > right->priority) {
-		Node<T>* result = join_aux(left->right, right);
+		TNode<T>* result = join_aux<T>(left->right, right);
 		left->set_right(result);
 		return left;
 	} else {
-		Node<T>* result = join_aux(left, right->left);
+		TNode<T>* result = join_aux<T>(left, right->left);
 		right->set_left(result);
 		return right;
 	}
@@ -181,7 +209,7 @@ Node<T>* join_aux(Node<T> *left, Node<T> *right) {
 
 template<typename T>
 void Treap<T>::join(Treap<T>& other) {
-	this->root = join_aux(this->root, other.root);
+	this->root = helper_methods::join_aux<T>(this->root, other.root);
 	other.root = nullptr;
 }
 
