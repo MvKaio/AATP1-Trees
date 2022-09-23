@@ -5,6 +5,7 @@
 #include <tuple>
 #include <chrono>
 #include <random>
+#include <stack>
 
 template<typename T>
 struct Node {
@@ -27,6 +28,7 @@ template<typename T>
 class Treap {
   public:
 	Treap();
+	~Treap();
 	unsigned size();
 	bool empty();
 	bool insert(const T& value);
@@ -37,6 +39,7 @@ class Treap {
 
   private:
 	Node<T> *root;
+	static void grab_pointers(std::stack<Node<T>*>&, Node<T>*);
 };
 
 template<typename T>
@@ -49,6 +52,24 @@ template<typename T>
 std::pair<Node<T>*, Node<T>*> split_after(const T& value, Node<T> *tree);
 
 ///////// Implementation Starts Here
+
+template<typename T>
+void Treap<T>::grab_pointers(std::stack<Node<T>*>& stk, Node<T>* at) {
+	if (at == nullptr) return;
+	grab_pointers(stk, at->left);
+	stk.push(at);
+	grab_pointers(stk, at->right);
+}
+
+template<typename T>
+Treap<T>::~Treap<T>() {
+	std::stack<Node<T>*> pointers;
+	grab_pointers(pointers, this->root);
+	while (not pointers.empty()) {
+		delete pointers.top();
+		pointers.pop();
+	}
+}
 
 template<typename T>
 unsigned get_size(Node<T> *node) {
