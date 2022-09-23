@@ -44,16 +44,16 @@ namespace __splay_helper_methods {
 	unsigned get_size(SNode<T>* node);
 
 	template<typename T>
-	void rotate(Node<T>*& x);
+	void rotate(SNode<T>*& x);
 
 	template<typename T>
-	void splay(Node<T>*& x);
+	void splay(SNode<T>*& x);
 
 	template<typename T>
 	SNode<T>* join_aux(SNode<T>* left, SNode<T>* right);
 
 	template<typename T>
-	Node<T>* successor(Node<T>* root, const T& value);
+	SNode<T>* successor(SNode<T>* root, const T& value);
 }
 
 ///////// Implementation Starts Here
