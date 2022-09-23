@@ -25,16 +25,18 @@ int main(int argc, char** argv) {
 			S.insert(value);
 			if (value == 11 && mp[value] == 2) {}
 			else T.insert(value);
-			cout << "Inserted " << value << ": " << S.size() << " " << T.size() << endl;
+			cout << "Inserted " << value << ": " << S.size() << " " << T.height() << endl;
 		} else if (coin == 1) {
-//			cout << "Want to erase " << value << endl;
 			S.erase(value);
-			T.erase(value);
-//			cout << "Erased " << value << ": " << S.size() << " " << T.size() << endl;
+			bool ret = T.erase(value);
+			if (ret)
+				cout << "Erased " << value << ": " << S.size() << " " << T.height() << endl;
+			else
+				cout << "Tried to erase " << value << endl;
 		} else {
 			//assert(S.count(value) == T.contains(value));
 		}
 
-		T.print();
+		//T.print();
 	}
 }
