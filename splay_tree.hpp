@@ -8,20 +8,19 @@
 #include <stack>
 
 template<typename T>
-struct Node {
-	T value;
-	unsigned size;
-	Node *parent, *left, *right;
-	Node(T _value = T()) : value(_value), size(1), 
-						   parent(nullptr), left(nullptr), right(nullptr) {}
-	void update_size();
-	void set_left(Node* x);
-	void set_right(Node* x);
-};
-
-template<typename T>
 class SplayTree {
   public:
+	struct Node {
+		T value;
+		unsigned size;
+		Node *parent, *left, *right;
+		Node(T _value = T()) : value(_value), size(1), 
+							   parent(nullptr), left(nullptr), right(nullptr) {}
+		void update_size();
+		void set_left(Node* x);
+		void set_right(Node* x);
+	};
+
 	SplayTree();
 	~SplayTree();
 	unsigned size();
@@ -33,24 +32,34 @@ class SplayTree {
 	void join(SplayTree<T>& other);
 
   private:
-	Node<T>* root;
-	static void grab_pointers(std::stack<Node<T>*>&, Node<T>*);
+	Node* root;
+	static void grab_pointers(std::stack<Node*>&, Node*);
 };
 
 template<typename T>
-void rotate(Node<T>*& x);
+using SNode = typename SplayTree<T>::Node;
 
-template<typename T>
-void splay(Node<T>*& x);
+namespace __splay_helper_methods {
+	template<typename T>
+	unsigned get_size(SNode<T>* node);
 
-template<typename T>
-Node<T>* successor(Node<T>* root, const T& value);
+	template<typename T>
+	void rotate(Node<T>*& x);
+
+	template<typename T>
+	void splay(Node<T>*& x);
+
+	template<typename T>
+	SNode<T>* join_aux(SNode<T>* left, SNode<T>* right);
+
+	template<typename T>
+	Node<T>* successor(Node<T>* root, const T& value);
+}
 
 ///////// Implementation Starts Here
 
-
 template<typename T>
-void SplayTree<T>::grab_pointers(std::stack<Node<T>*>& stk, Node<T>* at) {
+void SplayTree<T>::grab_pointers(std::stack<SplayTree<T>::Node*>& stk, SplayTree<T>::Node* at) {
 	if (at == nullptr) return;
 	grab_pointers(stk, at->left);
 	stk.push(at);
@@ -59,7 +68,7 @@ void SplayTree<T>::grab_pointers(std::stack<Node<T>*>& stk, Node<T>* at) {
 
 template<typename T>
 SplayTree<T>::~SplayTree() {
-	std::stack<Node<T>*> pointers;
+	std::stack<SNode<T>*> pointers;
 	grab_pointers(pointers, this->root);
 	while (not pointers.empty()) {
 		delete pointers.top();
@@ -68,17 +77,17 @@ SplayTree<T>::~SplayTree() {
 }
 
 template<typename T>
-unsigned get_size(Node<T>* node) {
+unsigned __splay_helper_methods::get_size(SNode<T>* node) {
 	return (node == nullptr ? 0 : node->size);
 }
 
 template<typename T>
-void Node<T>::update_size() {
-	this->size = get_size(left) + 1 + get_size(right);
+void SplayTree<T>::Node::update_size() {
+	this->size = __splay_helper_methods::get_size<T>(left) + 1 + __splay_helper_methods::get_size<T>(right);
 }
 
 template<typename T>
-void Node<T>::set_right(Node<T>* x) {
+void SplayTree<T>::Node::set_right(SplayTree<T>::Node* x) {
 	this->right = x;
 	if (x != nullptr)
 		x->parent = this;
@@ -86,7 +95,7 @@ void Node<T>::set_right(Node<T>* x) {
 }
 
 template<typename T>
-void Node<T>::set_left(Node<T>* x) {
+void SplayTree<T>::Node::set_left(SplayTree<T>::Node* x) {
 	this->left = x;
 	if (x != nullptr)
 		x->parent = this;
@@ -94,11 +103,11 @@ void Node<T>::set_left(Node<T>* x) {
 }
 
 template<typename T>
-void rotate(Node<T>*& x) {
+void __splay_helper_methods::rotate(SNode<T>*& x) {
 	if (x == nullptr) return;
 	if (x->parent == nullptr) return;
 
-	Node<T>* pp = x->parent->parent;
+	SNode<T>* pp = x->parent->parent;
 
 	if (x == x->parent->left) {
 		x->parent->set_left(x->right);
@@ -126,21 +135,21 @@ void rotate(Node<T>*& x) {
 }
 
 template<typename T>
-void splay(Node<T>*& x) {
+void __splay_helper_methods::splay(SNode<T>*& x) {
 	if (x == nullptr) return;
 	while (x->parent != nullptr) {
 		if (x->parent->parent == nullptr) { // zig
-			rotate(x);
+			__splay_helper_methods::rotate<T>(x);
 		} else {
 			bool left_child = (x->parent->left == x);
 			bool left_parent = (x->parent->parent->left == x->parent);
 
 			if (left_child == left_parent) { // zigzag
-				rotate(x->parent);
-				rotate(x);
+				__splay_helper_methods::rotate<T>(x->parent);
+				__splay_helper_methods::rotate<T>(x);
 			} else { // zigzig
-				rotate(x);
-				rotate(x);
+				__splay_helper_methods::rotate<T>(x);
+				__splay_helper_methods::rotate<T>(x);
 			}
 		}
 	}
@@ -161,8 +170,8 @@ bool SplayTree<T>::empty() {
 
 template<typename T>
 bool SplayTree<T>::insert(const T& value) {
-	Node<T>* at = this->root;
-	Node<T>* x = new Node<T>(value);
+	SNode<T>* at = this->root;
+	SNode<T>* x = new SNode<T>(value);
 
 	if (at == nullptr) {
 		this->root = x;
@@ -178,7 +187,7 @@ bool SplayTree<T>::insert(const T& value) {
 			if (at->left == nullptr) {
 				at->set_left(x);
 				this->root = x;
-				splay(this->root);
+				__splay_helper_methods::splay<T>(this->root);
 				return true;
 			}
 			at = at->left;
@@ -187,7 +196,7 @@ bool SplayTree<T>::insert(const T& value) {
 			if (at->right == nullptr) {
 				at->set_right(x);
 				this->root = x;
-				splay(this->root);
+				__splay_helper_methods::splay<T>(this->root);
 				return true;
 			}
 			at = at->right;
@@ -196,10 +205,10 @@ bool SplayTree<T>::insert(const T& value) {
 }
 
 template<typename T>
-Node<T>* successor(Node<T>* root, const T& value) {
+SNode<T>* successor(SNode<T>* root, const T& value) {
 	if (root == nullptr) return nullptr;
 	if (root->value > value) {
-		Node<T>* left_succ = successor(root->left, value);
+		SNode<T>* left_succ = successor(root->left, value);
 		if (left_succ) return left_succ;
 		else return root;
 	} else {
@@ -207,21 +216,18 @@ Node<T>* successor(Node<T>* root, const T& value) {
 	}
 }
 
-using std::cerr, std::endl;
 template<typename T>
-Node<T>* join_aux(Node<T>* left, Node<T>* right) {
+SNode<T>* __splay_helper_methods::join_aux(SNode<T>* left, SNode<T>* right) {
 	if (right == nullptr) return left;
 	if (left == nullptr) return right;
 
-	Node<T>* at = right;
+	SNode<T>* at = right;
 	while (at->left != nullptr) 
 		at = at->left;
-	Node<T>* min_right = at->left;
+	SNode<T>* min_right = at->left;
 	if (min_right == nullptr)
 		min_right = at;
-	cerr << "right -> " << get_size(right) << endl;
-	splay(min_right);
-	cerr << "min_right -> " << get_size(min_right) << endl;
+	__splay_helper_methods::splay<T>(min_right);
 	min_right->set_left(left);
 
 	return min_right;
@@ -229,7 +235,7 @@ Node<T>* join_aux(Node<T>* left, Node<T>* right) {
 
 template<typename T>
 void SplayTree<T>::erase(const T& value) {
-	Node<T>* at = root;
+	SNode<T>* at = root;
 	while (at != nullptr && at->value != value) {
 		if (at->value == value) break;
 		if (value < at->value)
@@ -240,28 +246,27 @@ void SplayTree<T>::erase(const T& value) {
 
 	if (at == nullptr) return;
 
-	splay(at);
+	__splay_helper_methods::splay<T>(at);
 	if (at->left)
 		at->left->parent = nullptr;
 	if (at->right)
 		at->right->parent = nullptr;
-	this->root = join_aux(at->left, at->right);
+	this->root = __splay_helper_methods::join_aux<T>(at->left, at->right);
 
-	std::cerr << at << std::endl;
 	delete at;
 }
 
 template<typename T>
 void SplayTree<T>::join(SplayTree<T>& other) {
-	this->root = join_aux(this->root, other.root);
+	this->root = __splay_helper_methods::join_aux<T>(this->root, other.root);
 	other.root = nullptr;
 }
 
 template<typename T>
 void SplayTree<T>::split(const T& value, SplayTree<T>& other, bool after) {
-	Node<T>* succ = successor(this->root, value);
+	SNode<T>* succ = successor(this->root, value);
 	if (succ) {
-		splay(succ);
+		__splay_helper_methods::splay<T>(succ);
 		other.root = succ;
 		this->root = succ->left;
 		if (this->root)
@@ -279,7 +284,7 @@ void SplayTree<T>::split(const T& value, SplayTree<T>& other, bool after) {
 
 template<typename T>
 bool SplayTree<T>::contains(const T& value) {
-	Node<T> *at = root;
+	SNode<T> *at = root;
 
 	while (at != nullptr) {
 		if (value == at->value) return true;

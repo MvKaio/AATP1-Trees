@@ -182,7 +182,7 @@ bool AVL<T>::insert(const T& value) {
 }
 
 template<typename T>
-Node<T>* AVL<T>::erase(Node<T>* p, const T& value, Node<T>* par) {
+Node<T>* AVL<T>::erase(Node<T>* p, const T& value, Node<T>* parent) {
 	if (p == nullptr)
 		return p;
 	else if (value < p->value)
@@ -192,8 +192,8 @@ Node<T>* AVL<T>::erase(Node<T>* p, const T& value, Node<T>* par) {
 	else {
 		if (p->left == nullptr) {
 			if (p->right == nullptr) {
-				if (par->left == p) par->left = nullptr;
-				if (par->right == p) par->right = nullptr;
+				if (parent && parent->left == p) parent->left = nullptr;
+				if (parent && parent->right == p) parent->right = nullptr;
 				delete p; p = nullptr;
 			} else {
 				Node<T> *tmp = p->right;
@@ -209,7 +209,7 @@ Node<T>* AVL<T>::erase(Node<T>* p, const T& value, Node<T>* par) {
 			while (q->left != nullptr)
 				q = q->left;
 			p->value = q->value;
-			erase(p->right, p->value, p);
+			p->right = erase(p->right, p->value, p);
 		}
 	}
 	if (p == nullptr)
