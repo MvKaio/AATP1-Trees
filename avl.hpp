@@ -169,17 +169,17 @@ Node<T>* AVL<T>::erase(Node<T>* p, const T& value) {
 		p->right = erase(p->right, value);
 	else {
 		if (p->left == nullptr) {
-			if (p-> right == nullptr) {
-				free(p); p = nullptr;
+			if (p->right == nullptr) {
+				delete p; p = nullptr;
 			} else {
 				Node<T> *tmp = p->right;
 				*p = *tmp;
-				free(tmp);
+				delete tmp;
 			}
-		} else if (p-> right == nullptr) {
+		} else if (p->right == nullptr) {
 			Node<T> *tmp = p->left;
 			*p = *tmp;
-			free(tmp);
+			delete tmp;
 		} else {
 			Node<T> *q = p->right;
 			while (q->left != nullptr)
@@ -214,7 +214,7 @@ bool AVL<T>::contains(const T& value) {
 
 template<typename T>
 Node<T>* AVL<T>::join_left(Node<T>* tl, const T& k, Node<T>* tr) {
-	auto [value, size, left, right] = tr; free(tr);
+	auto [value, size, left, right] = tr; delete tr;
 
 	if (left->size <= tl->size + 1) {
 		Node<T> *aux = new Node<T>(k);
@@ -243,7 +243,7 @@ Node<T>* AVL<T>::join_left(Node<T>* tl, const T& k, Node<T>* tr) {
 
 template<typename T>
 Node<T>* AVL<T>::join_right(Node<T>* tl, const T& k, Node<T>* tr) {
-	auto [value, size, left, right] = tl; free(tl);
+	auto [value, size, left, right] = tl; delete tl;
 
 	if (right->size <= tr->size + 1) {
 		Node<T> *aux = new Node<T>(k);
@@ -295,14 +295,14 @@ bool AVL<T>::join(Node<T> *other) {
 		return false;
 	// erase(left_max->value);
 	const T value = left_max->value;
-	free(left_max);
+	delete left_max;
 	root = join(root, value, other);
 	return true;
 }
 
 template<typename T>
 Node<T>* AVL<T>::split(Node<T>* p, const T& k) {
-	auto [value, size, left, right] = p; free(p);
+	auto [value, size, left, right] = p; delete p;
 	if (value == k) {
 		root = left;
 		insert(k);

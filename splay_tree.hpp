@@ -5,6 +5,7 @@
 #include <tuple>
 #include <cassert>
 #include <iostream>
+#include <stack>
 
 template<typename T>
 struct Node {
@@ -22,6 +23,7 @@ template<typename T>
 class SplayTree {
   public:
 	SplayTree();
+	~SplayTree();
 	unsigned size();
 	bool empty();
 	bool insert(const T& value);
@@ -32,6 +34,7 @@ class SplayTree {
 
   private:
 	Node<T>* root;
+	static void grab_pointers(std::stack<Node<T>*>&, Node<T>*);
 };
 
 template<typename T>
@@ -44,6 +47,25 @@ template<typename T>
 Node<T>* successor(Node<T>* root, const T& value);
 
 ///////// Implementation Starts Here
+
+
+template<typename T>
+void SplayTree<T>::grab_pointers(std::stack<Node<T>*>& stk, Node<T>* at) {
+	if (at == nullptr) return;
+	grab_pointers(stk, at->left);
+	stk.push(at);
+	grab_pointers(stk, at->right);
+}
+
+template<typename T>
+SplayTree<T>::~SplayTree() {
+	std::stack<Node<T>*> pointers;
+	grab_pointers(pointers, this->root);
+	while (not pointers.empty()) {
+		delete pointers.top();
+		pointers.pop();
+	}
+}
 
 template<typename T>
 unsigned get_size(Node<T>* node) {
@@ -148,7 +170,10 @@ bool SplayTree<T>::insert(const T& value) {
 	}
 
 	while (true) {
-		if (value == at->value) return false;
+		if (value == at->value) {
+			delete x;
+			return false;
+		}
 		if (value < at->value) {
 			if (at->left == nullptr) {
 				at->set_left(x);
@@ -182,10 +207,31 @@ Node<T>* successor(Node<T>* root, const T& value) {
 	}
 }
 
+using std::cerr, std::endl;
+template<typename T>
+Node<T>* join_aux(Node<T>* left, Node<T>* right) {
+	if (right == nullptr) return left;
+	if (left == nullptr) return right;
+
+	Node<T>* at = right;
+	while (at->left != nullptr) 
+		at = at->left;
+	Node<T>* min_right = at->left;
+	if (min_right == nullptr)
+		min_right = at;
+	cerr << "right -> " << get_size(right) << endl;
+	splay(min_right);
+	cerr << "min_right -> " << get_size(min_right) << endl;
+	min_right->set_left(left);
+
+	return min_right;
+}
+
 template<typename T>
 void SplayTree<T>::erase(const T& value) {
-	Node<T> *at = root;
+	Node<T>* at = root;
 	while (at != nullptr && at->value != value) {
+		if (at->value == value) break;
 		if (value < at->value)
 			at = at->left;
 		else
@@ -194,66 +240,41 @@ void SplayTree<T>::erase(const T& value) {
 
 	if (at == nullptr) return;
 
-//	Node<T>* only_child = nullptr;
-//
-//	if (at->left == nullptr && at->right == nullptr) {
-//		if (at->parent->left == at)
-//			at->parent->set_left(nullptr);
-//		else // at->parent->right
-//			at->parent->set_right(nullptr);
-//		delete at;
-//		return;
-//	}
-//
-//	if (at->left && at->right == nullptr)
-//		only_child = at->left;
-//	else if (at->left == nullptr && at->right)
-//		only_child = at->right;
-//
-//	if (only_child) {
-//		if (at->parent->left == at) {
-//			at->parent->set_left(only_child);
-//			this->root = at->parent;
-//			splay(this->root);
-//		} else { // at->parent->right == at
-//			at->parent->set_right(only_child);
-//			this->root = at->parent;
-//			splay(this->root);
-//		}
-//	} else {
-//		Node<T>* succ = successor(at->right, value);
-//		if (!succ) {
-//			assert(at->right);
-//			printf("%d %d\n", at->value, at->right->value);
-//			assert(false);
-//		}
-//		Node<T>* succ_parent = succ->parent;
-//		Node<T>* succ_right = succ->right;
-//
-//		// Maybe the sizes get wrong after this operation
-//		// Let's hope not
-//
-//		if (succ_parent == at) {
-//			succ->set_left(at->left);
-//			if (at->parent->left == at)
-//				at->parent->set_left(succ);
-//			else // at->parent->right
-//				at->parent->set_right(succ);
-//		} else {
-//			succ->set_left(at->left);
-//			succ->set_right(at->right);
-//			if (at->parent->left == at)
-//				at->parent->set_left(succ);
-//			else // at->parent->right
-//				at->parent->set_right(succ);
-//
-//			succ_parent->set_right(succ_right);
-//			this->root = succ_parent;
-//			splay(this->root);
-//		}
-//	}
-//	
-//	delete at;
+	splay(at);
+	if (at->left)
+		at->left->parent = nullptr;
+	if (at->right)
+		at->right->parent = nullptr;
+	this->root = join_aux(at->left, at->right);
+
+	std::cerr << at << std::endl;
+	delete at;
+}
+
+template<typename T>
+void SplayTree<T>::join(SplayTree<T>& other) {
+	this->root = join_aux(this->root, other.root);
+	other.root = nullptr;
+}
+
+template<typename T>
+void SplayTree<T>::split(const T& value, SplayTree<T>& other, bool after) {
+	Node<T>* succ = successor(this->root, value);
+	if (succ) {
+		splay(succ);
+		other.root = succ;
+		this->root = succ->left;
+		if (this->root)
+			this->root->parent = nullptr;
+		other.root->left = nullptr;
+		other.root->update_size();
+	} else {
+		other = SplayTree<T>();
+	}
+	if (after == false && this->contains(value)) {
+		this->erase(value);
+		other.insert(value);
+	} 
 }
 
 template<typename T>
