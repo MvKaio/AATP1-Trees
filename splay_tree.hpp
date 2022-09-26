@@ -12,11 +12,12 @@ class SplayTree {
   public:
 	struct Node {
 		T value;
+		unsigned height;
 		unsigned size;
 		Node *parent, *left, *right;
-		Node(T _value = T()) : value(_value), size(1), 
+		Node(T _value = T()) : value(_value), height(1), size(1), 
 							   parent(nullptr), left(nullptr), right(nullptr) {}
-		void update_size();
+		void update_parameters();
 		void set_left(Node* x);
 		void set_right(Node* x);
 	};
@@ -24,6 +25,7 @@ class SplayTree {
 	SplayTree();
 	~SplayTree();
 	unsigned size();
+	unsigned height();
 	bool empty();
 	bool insert(const T& value);
 	void erase(const T& value);
@@ -42,6 +44,9 @@ using SNode = typename SplayTree<T>::Node;
 namespace __splay_helper_methods {
 	template<typename T>
 	unsigned get_size(SNode<T>* node);
+
+	template<typename T>
+	unsigned get_height(SNode<T>* node);
 
 	template<typename T>
 	void rotate(SNode<T>*& x);
@@ -82,7 +87,13 @@ unsigned __splay_helper_methods::get_size(SNode<T>* node) {
 }
 
 template<typename T>
-void SplayTree<T>::Node::update_size() {
+unsigned __splay_helper_methods::get_height(SNode<T>* node) {
+	return (node == nullptr ? 0 : node->height);
+}
+
+template<typename T>
+void SplayTree<T>::Node::update_parameters() {
+	this->height = 1 + std::max(__splay_helper_methods::get_height<T>(left),  __splay_helper_methods::get_height<T>(right));
 	this->size = __splay_helper_methods::get_size<T>(left) + 1 + __splay_helper_methods::get_size<T>(right);
 }
 
@@ -91,7 +102,7 @@ void SplayTree<T>::Node::set_right(SplayTree<T>::Node* x) {
 	this->right = x;
 	if (x != nullptr)
 		x->parent = this;
-	update_size();
+	update_parameters();
 }
 
 template<typename T>
@@ -99,7 +110,7 @@ void SplayTree<T>::Node::set_left(SplayTree<T>::Node* x) {
 	this->left = x;
 	if (x != nullptr)
 		x->parent = this;
-	update_size();
+	update_parameters();
 }
 
 template<typename T>
@@ -161,6 +172,11 @@ SplayTree<T>::SplayTree() : root(nullptr) {}
 template<typename T>
 unsigned SplayTree<T>::size() {
 	return (this->root == nullptr ? 0 : this->root->size);
+}
+
+template<typename T>
+unsigned SplayTree<T>::height() {
+	return (this->root == nullptr ? 0 : this->root->height);
 }
 
 template<typename T>
@@ -272,7 +288,7 @@ void SplayTree<T>::split(const T& value, SplayTree<T>& other, bool after) {
 		if (this->root)
 			this->root->parent = nullptr;
 		other.root->left = nullptr;
-		other.root->update_size();
+		other.root->update_parameters();
 	} else {
 		other = SplayTree<T>();
 	}

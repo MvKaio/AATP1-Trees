@@ -12,11 +12,11 @@ class Treap {
   public:
 	struct Node {
 		T value;
-		unsigned priority, size;
+		unsigned priority, size, height;
 		Node *left, *right;
-		Node(T _value = T()) : value(_value), priority(rng()), size(1), 
+		Node(T _value = T()) : value(_value), priority(rng()), size(1), height(1),
 							   left(nullptr), right(nullptr) {}
-		void update_size();
+		void update_parameters();
 		void set_left(Node* x);
 		void set_right(Node* x);
 
@@ -26,6 +26,7 @@ class Treap {
 	Treap();
 	~Treap();
 	unsigned size();
+	unsigned height();
 	bool empty();
 	bool insert(const T& value);
 	void erase(const T& value);
@@ -47,6 +48,9 @@ std::mt19937 Treap<T>::Node::rng(std::chrono::system_clock::now().time_since_epo
 namespace helper_methods {
 	template<typename T>
 	unsigned get_size(TNode<T>* node);
+
+	template<typename T>
+	unsigned get_height(TNode<T>* node);
 
 	template<typename T>
 	TNode<T>* join_aux(TNode<T> *left, TNode<T> *right);
@@ -84,20 +88,26 @@ unsigned helper_methods::get_size(TNode<T> *node) {
 }
 
 template<typename T>
-void Treap<T>::Node::update_size() {
+unsigned helper_methods::get_height(TNode<T> *node) {
+	return (node == nullptr ? 0 : node->height);
+}
+
+template<typename T>
+void Treap<T>::Node::update_parameters() {
+	this->height = 1 + std::max(helper_methods::get_height<T>(left), helper_methods::get_height<T>(right));
 	this->size = helper_methods::get_size<T>(left) + 1 + helper_methods::get_size<T>(right);
 }
 
 template<typename T>
 void Treap<T>::Node::set_right(Treap<T>::Node* x) {
 	right = x;
-	update_size();
+	update_parameters();
 }
 
 template<typename T>
 void Treap<T>::Node::set_left(Treap<T>::Node* x) {
 	left = x;
-	update_size();
+	update_parameters();
 }
 
 template<typename T>
@@ -106,6 +116,11 @@ Treap<T>::Treap() : root(nullptr) {}
 template<typename T>
 unsigned Treap<T>::size() {
 	return (this->root == nullptr ? 0 : this->root->size);
+}
+
+template<typename T>
+unsigned Treap<T>::height() {
+	return (this->root == nullptr ? 0 : this->root->height);
 }
 
 template<typename T>
